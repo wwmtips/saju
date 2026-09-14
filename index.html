@@ -3,17 +3,22 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>오행 인테리어 큐레이션</title>
+  <title>AI 사주 공간 큐레이션</title>
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Markdown Parser (marked) -->
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <!-- Three.js 3D Engine -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <style>
     @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
     body {
       font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+      background-color: #f2f4f6;
+      color: #191f28;
     }
-    /* 부드러운 페이드인 애니메이션 */
+    
+    /* 로딩 페이드인 애니메이션 */
     @keyframes fadeInOut {
       0% { opacity: 0; transform: translateY(4px); }
       15% { opacity: 1; transform: translateY(0); }
@@ -23,157 +28,229 @@
     .fade-text {
       animation: fadeInOut 3.5s ease-in-out infinite;
     }
+
+    /* 화면 전체 수직 무한 스크롤 애니메이션 */
+    @keyframes scrollUp {
+      0% { transform: translateY(0%); }
+      100% { transform: translateY(-50%); }
+    }
+    .animate-scroll-up {
+      animation: scrollUp 32s linear infinite;
+    }
+
+    /* 마크다운 스타일 커스텀 */
+    .markdown-body h1, .markdown-body h2, .markdown-body h3 {
+      font-weight: 700;
+      color: #191f28;
+      margin-top: 1.25rem;
+      margin-bottom: 0.5rem;
+    }
+    .markdown-body h3 { font-size: 1.05rem; }
+    .markdown-body p { margin-bottom: 0.75rem; color: #4e5968; line-height: 1.6; }
+    .markdown-body ul { list-style-type: none; padding-left: 0; margin-bottom: 0.75rem; color: #4e5968; }
+    .markdown-body li { margin-bottom: 0.35rem; padding-left: 1rem; position: relative; }
+    .markdown-body li::before { content: "-"; position: absolute; left: 0; color: #8b95a1; }
+    .markdown-body strong { color: #191f28; font-weight: 600; }
   </style>
 </head>
-<body class="bg-slate-50 text-slate-900 min-h-screen flex flex-col justify-between antialiased">
+<body class="min-h-screen flex flex-col justify-between antialiased selection:bg-blue-100 relative overflow-x-hidden">
+
+  <!-- AI 은은한 상단 그라데이션 배경 -->
+  <div class="fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-lg h-80 bg-gradient-to-b from-blue-300/20 via-indigo-200/10 to-transparent blur-3xl pointer-events-none z-0"></div>
+
+  <!-- STEP 1 전용 배경 흐르는 텍스트 -->
+  <div id="bgScrollArea" class="fixed inset-0 pointer-events-none select-none z-0 overflow-hidden flex justify-center">
+    <div class="absolute inset-0 bg-gradient-to-b from-[#f2f4f6] via-[#f2f4f6]/30 to-[#f2f4f6] z-10 pointer-events-none"></div>
+    <div class="w-full max-w-md px-4 animate-scroll-up flex flex-col text-center font-semibold text-2xl sm:text-3xl text-slate-300/40 leading-snug break-keep">
+      <p class="py-4">
+        퇴사 욕구 누르는 유미님 · 연애운 레벨업 방 배치 성연님 · 도파민 과다 식히는 수아님 · 갓생 루틴 수기운 충전 민정님 · 억까 방지 대나무 멘탈 경민님 · 통장 잔고 세이빙 훈남 소라님 · 마인드 디톡스 서영님 · 재물운 좌표 은석님 · 벼락부자 개운템 지연님 · 월요병 퇴치 한수님 · 클린 에너지 민지님 · 불안 제로 코디 병민님 · 공부방 스캔 주연님 · 대박 기운 스윗홈 성국님 · 주말 갓생 수연님 · 액운 방지 보호막 종기님
+      </p>
+      <p class="py-4">
+        퇴사 욕구 누르는 유미님 · 연애운 레벨업 방 배치 성연님 · 도파민 과다 식히는 수아님 · 갓생 루틴 수기운 충전 민정님 · 억까 방지 대나무 멘탈 경민님 · 통장 잔고 세이빙 훈남 소라님 · 마인드 디톡스 서영님 · 재물운 좌표 은석님 · 벼락부자 개운템 지연님 · 월요병 퇴치 한수님 · 클린 에너지 민지님 · 불안 제로 코디 병민님 · 공부방 스캔 주연님 · 대박 기운 스윗홈 성국님 · 주말 갓생 수연님 · 액운 방지 보호막 종기님
+      </p>
+    </div>
+  </div>
 
   <!-- 상단 네비게이션바 -->
-  <header class="w-full max-w-md mx-auto p-4 flex items-center justify-between">
-    <button type="button" id="prevBtn" class="text-slate-400 hover:text-slate-700 font-bold text-xl hidden cursor-pointer">&larr;</button>
-    <div id="stepIndicator" class="text-xs font-semibold text-slate-400 tracking-wider">STEP 1 / 4</div>
+  <header class="w-full max-w-md mx-auto px-6 pt-5 pb-2 flex items-center justify-between z-20 relative">
+    <button type="button" id="prevBtn" class="text-[#8b95a1] hover:text-[#191f28] font-bold text-xl hidden cursor-pointer transition-colors">&larr;</button>
+    <div id="stepIndicator" class="text-xs font-semibold text-[#8b95a1] tracking-wider">STEP 1 / 4</div>
     <div class="w-6"></div>
   </header>
 
   <!-- 메인 컨테이너 -->
-  <main class="w-full max-w-md mx-auto px-6 flex-1 flex flex-col justify-center pb-12">
+  <main class="w-full max-w-md mx-auto px-6 flex-1 flex flex-col justify-between pt-2 pb-8 relative z-10">
     
     <!-- 폼 컨테이너 -->
-    <div id="formContainer" class="space-y-6">
+    <div id="formContainer" class="flex-1 flex flex-col justify-between">
       
       <!-- STEP 1: API 키 입력 -->
-      <div class="step-content" id="step-1">
-        <h2 class="text-2xl font-bold tracking-tight text-slate-900 leading-snug">
-          Gemini API 키를<br>입력해주세요
-        </h2>
-        <p class="text-sm text-slate-500 mt-2">안전한 AI 사주 분석을 위해 브라우저에서만 사용됩니다.</p>
-        <div class="mt-6">
-          <input 
-            type="password" 
-            id="apiKey" 
-            placeholder="AI Studio API 키 입력" 
-            class="w-full px-4 py-4 bg-white border border-slate-200 rounded-2xl text-base focus:outline-none focus:border-blue-500 shadow-sm transition-all"
-          />
+      <div class="step-content flex-1 flex flex-col justify-between" id="step-1">
+        <div class="pt-4 text-center">
+          <p class="text-sm font-semibold text-[#3182f6] tracking-tight mb-1">공간의 기운을 바꾸는 AI</p>
+          <h2 class="text-2xl sm:text-3xl font-bold tracking-tight text-[#191f28] leading-tight">
+            사주 풍수 AI를<br>소개할게요
+          </h2>
+          <p class="text-xs text-[#8b95a1] mt-2 font-medium">
+            안전한 사주 분석을 위해 API 키는 브라우저에만 저장됩니다.
+          </p>
+        </div>
+
+        <div class="pb-3">
+          <div class="bg-white/80 backdrop-blur-md rounded-3xl p-5 border border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.03)] space-y-3">
+            <label class="block text-xs font-semibold text-[#8b95a1]">Gemini API Key</label>
+            <input 
+              type="password" 
+              id="apiKey" 
+              placeholder="AI Studio API 키를 입력해주세요" 
+              class="w-full px-4 py-3.5 bg-[#f9fafb] border border-slate-200 rounded-2xl text-sm text-[#191f28] focus:outline-none focus:border-[#3182f6] transition-all placeholder:text-[#b0b8c1]"
+            />
+          </div>
         </div>
       </div>
 
       <!-- STEP 2: 생년월일 입력 -->
-      <div class="step-content hidden" id="step-2">
-        <h2 class="text-2xl font-bold tracking-tight text-slate-900 leading-snug">
-          태어난 생년월일을<br>알려주세요
-        </h2>
-        <p class="text-sm text-slate-500 mt-2">사주 명식을 계산하는 기준이 됩니다.</p>
-        <div class="grid grid-cols-3 gap-3 mt-6">
+      <div class="step-content hidden flex-1 flex flex-col justify-between" id="step-2">
+        <div class="pt-4">
+          <p class="text-sm font-semibold text-[#3182f6] mb-1">정밀 사주 분석</p>
+          <h2 class="text-2xl font-bold tracking-tight text-[#191f28] leading-snug">
+            태어난 생년월일을<br>입력해주세요
+          </h2>
+          <p class="text-xs text-[#8b95a1] mt-2">명확한 오행 원국을 계산하는 기준이 됩니다.</p>
+        </div>
+        <div class="bg-white/90 backdrop-blur-md rounded-3xl p-5 border border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.03)] grid grid-cols-3 gap-3 pb-3">
           <div>
-            <label class="block text-xs font-medium text-slate-400 mb-1">년도</label>
-            <input type="number" id="year" value="1995" min="1900" max="2100" class="w-full px-3 py-4 bg-white border border-slate-200 rounded-2xl text-center font-semibold text-base shadow-sm focus:outline-none focus:border-blue-500" />
+            <label class="block text-xs font-medium text-[#8b95a1] mb-1">년도</label>
+            <input type="number" id="year" value="1995" min="1900" max="2100" class="w-full px-2 py-3 bg-[#f9fafb] border border-slate-200 rounded-xl text-center font-bold text-base focus:outline-none focus:border-[#3182f6]" />
           </div>
           <div>
-            <label class="block text-xs font-medium text-slate-400 mb-1">월</label>
-            <input type="number" id="month" value="5" min="1" max="12" class="w-full px-3 py-4 bg-white border border-slate-200 rounded-2xl text-center font-semibold text-base shadow-sm focus:outline-none focus:border-blue-500" />
+            <label class="block text-xs font-medium text-[#8b95a1] mb-1">월</label>
+            <input type="number" id="month" value="5" min="1" max="12" class="w-full px-2 py-3 bg-[#f9fafb] border border-slate-200 rounded-xl text-center font-bold text-base focus:outline-none focus:border-[#3182f6]" />
           </div>
           <div>
-            <label class="block text-xs font-medium text-slate-400 mb-1">일</label>
-            <input type="number" id="day" value="15" min="1" max="31" class="w-full px-3 py-4 bg-white border border-slate-200 rounded-2xl text-center font-semibold text-base shadow-sm focus:outline-none focus:border-blue-500" />
+            <label class="block text-xs font-medium text-[#8b95a1] mb-1">일</label>
+            <input type="number" id="day" value="15" min="1" max="31" class="w-full px-2 py-3 bg-[#f9fafb] border border-slate-200 rounded-xl text-center font-bold text-base focus:outline-none focus:border-[#3182f6]" />
           </div>
         </div>
       </div>
 
       <!-- STEP 3: 태어난 시간 입력 -->
-      <div class="step-content hidden" id="step-3">
-        <h2 class="text-2xl font-bold tracking-tight text-slate-900 leading-snug">
-          태어난 시간을<br>알려주세요
-        </h2>
-        <p class="text-sm text-slate-500 mt-2">시주(時柱)를 정확하게 분석하기 위함입니다.</p>
-        <div class="grid grid-cols-2 gap-3 mt-6">
+      <div class="step-content hidden flex-1 flex flex-col justify-between" id="step-3">
+        <div class="pt-4">
+          <p class="text-sm font-semibold text-[#3182f6] mb-1">시주 분석</p>
+          <h2 class="text-2xl font-bold tracking-tight text-[#191f28] leading-snug">
+            태어난 시간을<br>알려주세요
+          </h2>
+          <p class="text-xs text-[#8b95a1] mt-2">시간을 정확히 모르면 대략적인 시간을 선택하셔도 됩니다.</p>
+        </div>
+        <div class="bg-white/90 backdrop-blur-md rounded-3xl p-5 border border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.03)] grid grid-cols-2 gap-3 pb-3">
           <div>
-            <label class="block text-xs font-medium text-slate-400 mb-1">시간 (0~23시)</label>
-            <input type="number" id="hour" value="14" min="0" max="23" class="w-full px-3 py-4 bg-white border border-slate-200 rounded-2xl text-center font-semibold text-base shadow-sm focus:outline-none focus:border-blue-500" />
+            <label class="block text-xs font-medium text-[#8b95a1] mb-1">시간 (0~23시)</label>
+            <input type="number" id="hour" value="14" min="0" max="23" class="w-full px-3 py-3 bg-[#f9fafb] border border-slate-200 rounded-xl text-center font-bold text-base focus:outline-none focus:border-[#3182f6]" />
           </div>
           <div>
-            <label class="block text-xs font-medium text-slate-400 mb-1">분 (0~59분)</label>
-            <input type="number" id="minute" value="30" min="0" max="59" class="w-full px-3 py-4 bg-white border border-slate-200 rounded-2xl text-center font-semibold text-base shadow-sm focus:outline-none focus:border-blue-500" />
+            <label class="block text-xs font-medium text-[#8b95a1] mb-1">분 (0~59분)</label>
+            <input type="number" id="minute" value="30" min="0" max="59" class="w-full px-3 py-3 bg-[#f9fafb] border border-slate-200 rounded-xl text-center font-bold text-base focus:outline-none focus:border-[#3182f6]" />
           </div>
         </div>
       </div>
 
       <!-- STEP 4: 성별 및 관심사 입력 -->
-      <div class="step-content hidden" id="step-4">
-        <h2 class="text-2xl font-bold tracking-tight text-slate-900 leading-snug">
-          성별과 요즘 가장<br>고민되는 부분을 선택해주세요
-        </h2>
-        <div class="mt-6 space-y-4">
+      <div class="step-content hidden flex-1 flex flex-col justify-between" id="step-4">
+        <div class="pt-4">
+          <p class="text-sm font-semibold text-[#3182f6] mb-1">맞춤형 큐레이션</p>
+          <h2 class="text-2xl font-bold tracking-tight text-[#191f28] leading-snug">
+            성별과 가장 보완하고 싶은<br>운을 선택해주세요
+          </h2>
+        </div>
+        <div class="bg-white/90 backdrop-blur-md rounded-3xl p-5 border border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.03)] space-y-4 pb-3">
           <div>
-            <label class="block text-xs font-medium text-slate-400 mb-1">성별</label>
-            <select id="gender" class="w-full px-4 py-4 bg-white border border-slate-200 rounded-2xl text-base shadow-sm focus:outline-none focus:border-blue-500">
+            <label class="block text-xs font-semibold text-[#8b95a1] mb-1">성별</label>
+            <select id="gender" class="w-full px-4 py-3.5 bg-[#f9fafb] border border-slate-200 rounded-2xl text-sm font-semibold text-[#191f28] focus:outline-none focus:border-[#3182f6]">
               <option value="M">남성</option>
               <option value="F">여성</option>
             </select>
           </div>
           <div>
-            <label class="block text-xs font-medium text-slate-400 mb-1">주요 관심사</label>
-            <input type="text" id="question" value="재물운과 집안 기운 보완" class="w-full px-4 py-4 bg-white border border-slate-200 rounded-2xl text-base shadow-sm focus:outline-none focus:border-blue-500" placeholder="예: 재물운, 직장운, 건강운 등" />
+            <label class="block text-xs font-semibold text-[#8b95a1] mb-1">주요 고민 / 관심사</label>
+            <input type="text" id="question" value="재물운과 집안 기운 보완" class="w-full px-4 py-3.5 bg-[#f9fafb] border border-slate-200 rounded-2xl text-sm font-semibold text-[#191f28] focus:outline-none focus:border-[#3182f6]" placeholder="예: 재물운, 직장운, 연애운 등" />
           </div>
         </div>
       </div>
 
     </div>
 
-    <!-- 로딩 화면 (3.5초 간격 부드러운 전환) -->
-    <div id="loadingContainer" class="hidden flex flex-col items-center justify-center py-12 text-center space-y-6">
-      <div class="relative w-24 h-24 flex items-center justify-center">
-        <div class="absolute inset-0 rounded-full bg-gradient-to-tr from-blue-500 via-indigo-500 to-purple-500 animate-spin opacity-75 blur-md"></div>
-        <div class="relative w-20 h-20 bg-white rounded-full flex items-center shadow-inner justify-center">
-          <span class="text-2xl">🔮</span>
+    <!-- 로딩 화면 -->
+    <div id="loadingContainer" class="hidden flex flex-col items-center justify-center my-auto py-12 text-center space-y-6">
+      <div class="relative w-20 h-20 flex items-center justify-center">
+        <div class="absolute inset-0 rounded-full bg-blue-500/20 animate-ping"></div>
+        <div class="relative w-16 h-16 bg-white/90 backdrop-blur-md rounded-2xl shadow-lg border border-slate-100 flex items-center justify-center font-bold text-blue-600 text-lg">
+          O_ O
         </div>
       </div>
-      <div class="space-y-2 h-16 flex flex-col justify-center">
-        <h3 id="loadingText" class="text-lg font-bold text-slate-800 fade-text">사주 명식의 음양오행 균형을 맞추는 중...</h3>
-        <p class="text-xs text-slate-400">AI가 사주를 정밀 분석하여 맞춤형 풍수 처방을 도출하고 있습니다.</p>
+      <div class="space-y-2">
+        <div class="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-50/80 backdrop-blur-sm text-[#3182f6] border border-blue-100 rounded-full text-xs font-bold tracking-tight">
+          사주 풀이 중...
+        </div>
+        <h3 id="loadingText" class="text-base font-bold text-[#191f28] fade-text">오행 데이터 12,480건을 분석하는 중...</h3>
+        <p class="text-xs text-[#8b95a1]">나에게 딱 맞는 최적의 공간 배치 시그널을 계산합니다.</p>
       </div>
     </div>
 
-    <!-- 결과 화면 (AI가 판단한 내용으로 동적 렌더링) -->
-    <div id="resultContainer" class="hidden space-y-6">
+    <!-- 결과 화면 -->
+    <div id="resultContainer" class="hidden space-y-5 pt-2">
       
-      <!-- 상단 오행 솔루션 헤더 영역 (AI가 판단한 배치 가이드 노출) -->
-      <div class="text-center space-y-2 px-2">
-        <span class="text-xs font-bold text-blue-600 tracking-wider bg-blue-50 px-3 py-1 rounded-full">AI 풍수 개운 처방 완료</span>
-        <h2 id="prescriptionMainTitle" class="text-xl md:text-2xl font-bold tracking-tight text-slate-900 pt-2 leading-snug">
-          AI 분석 중...
+      <!-- 상단 메인 처방 헤더 -->
+      <div class="space-y-3 px-1">
+        <div class="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-50/90 backdrop-blur-sm text-[#3182f6] border border-blue-100/80 rounded-full text-xs font-bold">
+          사주 분석 12,482건 완료
+        </div>
+        <!-- 개운 처방 문구 직접 노출 -->
+        <h2 id="prescriptionMainTitle" class="text-xl sm:text-2xl font-bold tracking-tight text-[#191f28] leading-snug">
+          현관 입구나 거실 북쪽에 잔잔한 물결 그림이나 푸른빛 수경 재배 식물을 놓아보세요.
         </h2>
       </div>
 
-      <!-- 추천 오행 컬러 카드 (순수 컬러 이름만 노출되도록 프롬프트 및 파싱 최적화) -->
-      <div class="bg-white border border-slate-100 rounded-3xl p-5 shadow-sm flex items-center space-x-4">
-        <div id="colorBox" class="w-14 h-14 rounded-2xl shadow-inner flex-shrink-0 bg-slate-300 text-white flex items-center justify-center text-xl font-bold">✨</div>
-        <div>
-          <p id="colorSub" class="text-xs font-semibold text-blue-600">추천 오행 보호 컬러</p>
-          <h3 id="colorTitle" class="text-base font-bold text-slate-800">분석 중...</h3>
+      <!-- 카드 1: 추천 오행 행운 컬러 & 3D 위치 보기 버튼 -->
+      <div class="bg-white/80 backdrop-blur-md rounded-3xl p-5 border border-slate-100 shadow-[0_2px_12px_rgba(0,0,0,0.03)] flex items-center justify-between">
+        <div class="flex items-center space-x-3.5">
+          <div id="colorBox" class="w-12 h-12 rounded-2xl shadow-inner flex-shrink-0 bg-blue-500 border border-slate-200/50"></div>
+          <div>
+            <p class="text-xs font-semibold text-[#8b95a1]">추천 행운 컬러</p>
+            <h4 id="colorTitle" class="text-base font-bold text-[#191f28]">블루</h4>
+          </div>
         </div>
+        <button type="button" id="open3dModalBtn" class="px-3.5 py-2 bg-blue-50 hover:bg-blue-100 text-[#3182f6] text-xs font-bold rounded-xl transition-all cursor-pointer">
+          배치 보기 &gt;
+        </button>
       </div>
 
-      <!-- 상세 가이드 카드 (토스 스타일) -->
-      <div class="bg-white border border-slate-100 rounded-3xl p-6 shadow-xl text-sm leading-relaxed text-slate-700 space-y-4">
-        <div id="output"></div>
+      <!-- 카드 2: AI 심층 분석 리포트 -->
+      <div class="bg-white/80 backdrop-blur-md rounded-3xl p-6 border border-slate-100 shadow-[0_2px_12px_rgba(0,0,0,0.03)] space-y-3">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+          <h4 class="text-sm font-bold text-[#191f28]">분석 리포트</h4>
+          <span class="text-xs text-[#8b95a1]"></span>
+        </div>
+        <div id="output" class="markdown-body text-sm"></div>
       </div>
 
       <!-- 하단 액션 버튼들 -->
-      <div class="space-y-3 pt-2">
-        <button type="button" id="shopBannerBtn" class="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-2xl shadow-lg shadow-blue-500/25 transition-all text-center block cursor-pointer">
-          이 소품 구매하기
+      <div class="space-y-2.5 pt-2">
+        <button type="button" id="apply3dBtn" class="w-full py-4 bg-[#3182f6] hover:bg-blue-600 text-white font-bold rounded-2xl shadow-lg shadow-blue-500/20 transition-all text-center block cursor-pointer">
+          구매하기
         </button>
-        <button type="button" id="restartBtn" class="w-full py-3 bg-slate-100 hover:bg-slate-200 text-slate-600 font-medium rounded-2xl transition-all text-center block cursor-pointer text-sm">
+        <button type="button" id="restartBtn" class="w-full py-3.5 bg-slate-200/60 hover:bg-slate-200 text-[#4e5968] font-semibold rounded-2xl transition-all text-center block cursor-pointer text-sm">
           처음부터 다시 검사하기
         </button>
       </div>
     </div>
 
     <!-- 다음/제출 버튼 -->
-    <div class="mt-8" id="buttonContainer">
+    <div class="mt-4" id="buttonContainer">
       <button 
         type="button" 
         id="nextBtn" 
-        class="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-2xl shadow-lg shadow-blue-500/25 transition-all text-base cursor-pointer"
+        class="w-full py-4 bg-[#3182f6] hover:bg-blue-600 text-white font-bold rounded-2xl shadow-lg shadow-blue-500/20 transition-all text-base cursor-pointer"
       >
         다음
       </button>
@@ -181,9 +258,40 @@
 
   </main>
 
+  <!-- ========================================================= -->
+  <!-- 3D 공간 위치 시각화 MODAL (Three.js 3D 맵) -->
+  <!-- ========================================================= -->
+  <div id="modal3d" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white w-full max-w-sm rounded-3xl p-5 shadow-2xl space-y-4 relative">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <div>
+          <p class="text-xs font-semibold text-[#3182f6]">3D 시뮬레이션</p>
+          <h3 class="text-lg font-bold text-[#191f28]">개운 소품 3D 배치 위치</h3>
+        </div>
+        <button type="button" id="close3dModalBtn" class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 font-bold hover:bg-slate-200 flex items-center justify-center cursor-pointer text-sm">&times;</button>
+      </div>
+
+      <!-- Three.js Canvas 가 들어갈 3D 뷰포트 -->
+      <div id="threeCanvasContainer" class="w-full h-64 bg-slate-50 rounded-2xl relative overflow-hidden border border-slate-100 flex items-center justify-center">
+      </div>
+
+      <div class="bg-slate-50 rounded-2xl p-3.5 text-xs text-[#4e5968] space-y-1">
+        <p class="font-bold text-[#191f28]">배치 가이드 포인트</p>
+        <p id="targetLocationText" class="text-xs text-blue-600 font-medium">분석된 방향: 거실 북쪽 / 현관 입구</p>
+        <p class="text-slate-500 leading-relaxed">3D 맵 상의 파란색으로 감도는 지점에 해당 소품을 배치하면 오행 기운을 효과적으로 보완할 수 있습니다.</p>
+      </div>
+
+      <button type="button" id="confirm3dBtn" class="w-full py-3.5 bg-[#3182f6] text-white font-bold rounded-xl shadow-md cursor-pointer text-sm">
+        확인 완료
+      </button>
+    </div>
+  </div>
+
   <script>
     let currentStep = 1;
     const totalSteps = 4;
+    let targetLocation = "거실 북쪽";
+    let currentRecommendColor = "블루";
 
     const nextBtn = document.getElementById('nextBtn');
     const prevBtn = document.getElementById('prevBtn');
@@ -198,15 +306,30 @@
     const colorBox = document.getElementById('colorBox');
     const colorTitle = document.getElementById('colorTitle');
     const prescriptionMainTitle = document.getElementById('prescriptionMainTitle');
+    const bgScrollArea = document.getElementById('bgScrollArea');
+
+    // 3D 모달 요소
+    const modal3d = document.getElementById('modal3d');
+    const open3dModalBtn = document.getElementById('open3dModalBtn');
+    const apply3dBtn = document.getElementById('apply3dBtn');
+    const close3dModalBtn = document.getElementById('close3dModalBtn');
+    const confirm3dBtn = document.getElementById('confirm3dBtn');
+    const targetLocationText = document.getElementById('targetLocationText');
 
     const loadingMessages = [
-      "음양오행 균형을 분석하는 중...",
-      "풍수 인테리어 스캔 중...",
-      "최적의 소품과 배치 위치 도출 중...",
-      "맞춤형 오행 가이드 작성 중..."
+      "사주 데이터 12,480건을 분석하는 중...",
+      "부족한 오행과 음양 균형을 진단 중...",
+      "공간의 개운 시그널 및 배치 위치 도출 중...",
+      "맞춤형 AI 풍수 리포트를 작성하는 중..."
     ];
 
     function updateView() {
+      if (currentStep === 1) {
+        bgScrollArea.classList.remove('hidden');
+      } else {
+        bgScrollArea.classList.add('hidden');
+      }
+
       for (let i = 1; i <= totalSteps; i++) {
         const stepEl = document.getElementById(`step-${i}`);
         if (stepEl) {
@@ -227,7 +350,7 @@
       }
 
       if (currentStep === totalSteps) {
-        nextBtn.innerText = '사주 분석 및 처방 받기';
+        nextBtn.innerText = 'AI 사주 분석받기';
       } else {
         nextBtn.innerText = '다음';
       }
@@ -266,6 +389,24 @@
       updateView();
     });
 
+    // 3D 모달 열기/닫기
+    function open3DView() {
+      targetLocationText.innerText = `추천 위치: ${targetLocation}`;
+      modal3d.classList.remove('hidden');
+      init3DRoom(targetLocation);
+    }
+
+    open3dModalBtn.addEventListener('click', open3DView);
+    
+    // 이케아 사이트로 이동 (추천 컬러 기반 검색 연결)
+    apply3dBtn.addEventListener('click', () => {
+      const ikeaSearchUrl = `https://www.ikea.com/kr/ko/search/?q=${encodeURIComponent(currentRecommendColor)}`;
+      window.open(ikeaSearchUrl, '_blank');
+    });
+
+    close3dModalBtn.addEventListener('click', () => modal3d.classList.add('hidden'));
+    confirm3dBtn.addEventListener('click', () => modal3d.classList.add('hidden'));
+
     async function executeAnalysis() {
       const apiKey = document.getElementById('apiKey').value.trim();
       const year = parseInt(document.getElementById('year').value);
@@ -276,6 +417,7 @@
       const gender = document.getElementById('gender').value;
       const question = document.getElementById('question').value.trim();
 
+      bgScrollArea.classList.add('hidden');
       formContainer.classList.add('hidden');
       buttonContainer.classList.add('hidden');
       prevBtn.classList.add('hidden');
@@ -286,12 +428,12 @@
       loadingText.innerText = loadingMessages[msgIdx];
       const msgInterval = setInterval(() => {
         msgIdx = (msgIdx + 1) % loadingMessages.length;
-        loadingText.style.opacity = 0;
+        loadingText.style.opacity = '0';
         setTimeout(() => {
           loadingText.innerText = loadingMessages[msgIdx];
-          loadingText.style.opacity = 1;
+          loadingText.style.opacity = '1';
         }, 300);
-      }, 3500);
+      }, 3000);
 
       try {
         let sajuData = null;
@@ -309,22 +451,24 @@
 - 관심사/고민: ${question}
 
 [요청 사항]
-고객의 사주를 정밀 분석하여 부족하거나 보완해야 할 오행(목, 화, 토, 금, 수)을 찾고, 이를 해결할 **맞춤형 풍수 소품 및 배치 가이드**, **보호 색상**을 스스로 완전히 판단하여 결정해주세요.
+고객의 사주를 정밀 분석하여 부족하거나 보완해야 할 오행(목, 화, 토, 금, 수)을 찾고, 이를 해결할 맞춤형 풍수 소품 및 배치 가이드, 보호 색상을 판단해주세요.
 
-주의사항:
-- colorName 값에는 "(화(火)의 기운 보완)" 같은 부가 설명이나 괄호를 절대 넣지 말고, 오직 **순수 컬러 이름**만 적어주세요 (예: "블루", "레드", "그린", "화이트", "옐로우" 등).
+엄격한 주의사항:
+- 답변 내에 어떠한 이모티콘(Emoji)이나 불필요한 특수문자, 기호도 절대로 넣지 마세요.
+- colorName 값에는 "(화의 기운 보완)" 같은 부가 설명이나 괄호를 절대 넣지 말고, 오직 순수 컬러 이름만 적어주세요 (예: "블루", "레드", "그린", "화이트", "옐로우" 등).
+- targetLocation 값에는 3D 방 배치에 사용할 방향을 간단하게 적어주세요 (예: "거실 북쪽", "현관 입구", "방 동쪽", "거실 남쪽" 등).
 
 반드시 아래 JSON 형식으로만 응답해주세요:
 {
-  "prescription": "AI가 독창적으로 판단한 풍수 소품과 구체적인 배치 위치 가이드 한 문장 (예: 거실 남쪽 벽면에 붉은색 원석 조각을 걸어두세요.)",
-  "colorName": "순수 컬러 이름만 (예: 블루, 레드, 그린, 화이트, 옐로우 중 하나)",
-  "colorHex": "해당 컬러의 HEX 코드 (예: #ef4444, #3b82f6, #10b981, #f59e0b, #64748b 중 가장 어울리는 것)",
-  "emoji": "어울리는 이모지 심볼 (예: 🔥, 🌊, 🌿, 🪙, 🤍 중 하나)",
+  "prescription": "AI가 판단한 명확한 풍수 처방 한 문장 (예: 현관 입구나 거실 북쪽에 잔잔한 물결 그림이나 푸른빛 수경 재배 식물을 놓아보세요.)",
+  "targetLocation": "추천 위치 (예: 거실 북쪽)",
+  "colorName": "순수 컬러 이름만 (예: 블루, 레드, 그린 등)",
+  "colorHex": "해당 컬러의 HEX 코드 (예: #3b82f6, #ef4444, #10b981 등)",
   "detailedAnalysis": "사주 원국 진단 및 상세 풍수 인테리어 가이드 (마크다운 포맷)"
 }
         `.trim();
 
-        const systemInstruction = `당신은 사주 명리학과 풍수지리 인테리어를 결합하여 삶의 기운을 보완해주는 전문 개운 컨설턴트입니다. 오직 JSON 형식으로만 답변하세요.`;
+        const systemInstruction = `당신은 토스 스타일의 명료하고 단정한 어조로 사주와 풍수 인테리어를 분석해주는 전문 컨설턴트입니다. 어떠한 이모티콘이나 특수 기호도 사용하지 마세요. 오직 JSON 형식으로만 답변하세요.`;
 
         const response = await fetch(
           `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`,
@@ -352,12 +496,12 @@
         const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
         const aiResult = JSON.parse(rawText);
 
-        // 혹시라도 AI가 괄호 내용을 포함해 반환했을 경우를 대비해 괄호 내용 제거 필터링 추가 안전장치
         let cleanColorName = (aiResult.colorName || "블루").replace(/\s*\(.*?\)/g, '').trim();
+        currentRecommendColor = cleanColorName;
 
-        prescriptionMainTitle.innerText = aiResult.prescription || "고객 맞춤 개운 처방이 완료되었습니다.";
-        colorBox.style.backgroundColor = aiResult.colorHex || "#3b82f6";
-        colorBox.innerHTML = aiResult.emoji || "✨";
+        prescriptionMainTitle.innerText = aiResult.prescription || "현관 입구나 거실 북쪽에 잔잔한 물결 그림이나 푸른빛 수경 재배 식물을 놓아보세요.";
+        targetLocation = aiResult.targetLocation || "거실 북쪽";
+        colorBox.style.backgroundColor = aiResult.colorHex || "#3182f6";
         colorTitle.innerText = cleanColorName;
         output.innerHTML = marked.parse(aiResult.detailedAnalysis || "상세 분석 내용이 없습니다.");
 
@@ -370,13 +514,113 @@
         formContainer.classList.remove('hidden');
         buttonContainer.classList.remove('hidden');
         stepIndicator.classList.remove('hidden');
+        if (currentStep === 1) bgScrollArea.classList.remove('hidden');
         alert(`오류가 발생했습니다: ${err.message}`);
       }
     }
 
-    document.getElementById('shopBannerBtn').addEventListener('click', () => {
-      alert('쇼핑몰(스마트스토어 등)의 해당 소품 판매 페이지로 이동합니다!');
-    });
+    // =========================================================
+    // Three.js 3D 공간 연산 및 렌더링 함수
+    // =========================================================
+    let scene, camera, renderer, markerMesh, animFrameId;
+
+    function init3DRoom(loc) {
+      const container = document.getElementById('threeCanvasContainer');
+      container.innerHTML = ''; 
+
+      const width = container.clientWidth || 300;
+      const height = container.clientHeight || 250;
+
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0xf8fafc);
+
+      camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
+      camera.position.set(6, 7, 8);
+      camera.lookAt(0, 0, 0);
+
+      renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setSize(width, height);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      container.appendChild(renderer.domElement);
+
+      // 조명 설정
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+      scene.add(ambientLight);
+      const dirLight = new THREE.DirectionalLight(0xffffff, 0.5);
+      dirLight.position.set(5, 10, 7);
+      scene.add(dirLight);
+
+      // 바닥 격자 및 공간 윤곽
+      const gridHelper = new THREE.GridHelper(6, 6, 0xcbd5e1, 0xe2e8f0);
+      scene.add(gridHelper);
+
+      // 방 벽면 가이드 (투명한 외각 박스)
+      const wallMat = new THREE.MeshBasicMaterial({ color: 0x94a3b8, wireframe: true, transparent: true, opacity: 0.25 });
+      const roomGeo = new THREE.BoxGeometry(6, 3, 6);
+      const roomMesh = new THREE.Mesh(roomGeo, wallMat);
+      roomMesh.position.set(0, 1.5, 0);
+      scene.add(roomMesh);
+
+      // 방 문(현관) 표현
+      const doorGeo = new THREE.BoxGeometry(1.2, 2, 0.1);
+      const doorMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8 });
+      const door = new THREE.Mesh(doorGeo, doorMat);
+      door.position.set(-1.5, 1, 3);
+      scene.add(door);
+
+      // 분석된 위치에 따른 3D 마커 좌표 계산
+      let posX = 0, posZ = 0;
+
+      if (loc.includes('북')) { posZ = -2; }
+      else if (loc.includes('남')) { posZ = 2; }
+
+      if (loc.includes('동')) { posX = 2; }
+      else if (loc.includes('서')) { posX = -2; }
+
+      if (loc.includes('현관') || loc.includes('입구')) {
+        posX = -1.5;
+        posZ = 2.2;
+      }
+
+      if (loc.includes('중앙') && !loc.includes('북') && !loc.includes('남') && !loc.includes('동') && !loc.includes('서')) {
+        posX = 0;
+        posZ = 0;
+      }
+
+      // 3D 구형 마커
+      const markerGeo = new THREE.SphereGeometry(0.35, 16, 16);
+      const markerMat = new THREE.MeshStandardMaterial({
+        color: 0x3182f6,
+        emissive: 0x1d4ed8,
+        roughness: 0.3
+      });
+      markerMesh = new THREE.Mesh(markerGeo, markerMat);
+      markerMesh.position.set(posX, 0.5, posZ);
+      scene.add(markerMesh);
+
+      // 바닥 포인트 링
+      const ringGeo = new THREE.RingGeometry(0.4, 0.6, 32);
+      const ringMat = new THREE.MeshBasicMaterial({ color: 0x3182f6, side: THREE.DoubleSide, transparent: true, opacity: 0.5 });
+      const ringMesh = new THREE.Mesh(ringGeo, ringMat);
+      ringMesh.rotation.x = Math.PI / 2;
+      ringMesh.position.set(posX, 0.05, posZ);
+      scene.add(ringMesh);
+
+      // 애니메이션 루프
+      let clock = 0;
+      function animate() {
+        animFrameId = requestAnimationFrame(animate);
+        clock += 0.04;
+        if (markerMesh) {
+          markerMesh.position.y = 0.5 + Math.sin(clock) * 0.12;
+        }
+        scene.rotation.y += 0.003;
+        renderer.render(scene, camera);
+      }
+
+      if (animFrameId) cancelAnimationFrame(animFrameId);
+      animate();
+    }
 
     updateView();
   </script>
