@@ -4,6 +4,14 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>AI 사주 공간 큐레이션</title>
+
+  <!-- PWA & 모바일 앱 설정 -->
+  <link id="manifestLink" rel="manifest" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="theme-color" content="#3182f6" />
+  
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Markdown Parser (marked) -->
@@ -54,6 +62,24 @@
   </style>
 </head>
 <body class="min-h-screen flex flex-col justify-between antialiased selection:bg-blue-100 relative overflow-x-hidden">
+
+  <!-- PWA 앱 설치 유도 배너 (크롬/모바일 감지 시 자동 노출) -->
+  <div id="installBanner" class="hidden sticky top-0 z-50 bg-[#3182f6] text-white px-4 py-2.5 shadow-md">
+    <div class="max-w-md mx-auto flex items-center justify-between text-xs sm:text-sm font-medium">
+      <div class="flex items-center space-x-2">
+        <span class="text-lg">🔮</span>
+        <span>앱으로 설치하고 더 빠르게 이용해보세요!</span>
+      </div>
+      <div class="flex items-center space-x-2">
+        <button type="button" id="installBtn" class="bg-white text-[#3182f6] px-3 py-1 rounded-lg font-bold hover:bg-slate-100 transition-all text-xs cursor-pointer">
+          설치하기
+        </button>
+        <button type="button" id="closeInstallBanner" class="text-white/80 hover:text-white font-bold text-base px-1">
+          &times;
+        </button>
+      </div>
+    </div>
+  </div>
 
   <!-- AI 은은한 상단 그라데이션 배경 -->
   <div class="fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-lg h-80 bg-gradient-to-b from-blue-300/20 via-indigo-200/10 to-transparent blur-3xl pointer-events-none z-0"></div>
@@ -185,12 +211,12 @@
       <div class="relative w-20 h-20 flex items-center justify-center">
         <div class="absolute inset-0 rounded-full bg-blue-500/20 animate-ping"></div>
         <div class="relative w-16 h-16 bg-white/90 backdrop-blur-md rounded-2xl shadow-lg border border-slate-100 flex items-center justify-center font-bold text-blue-600 text-lg">
-          O_ O
+          AI
         </div>
       </div>
       <div class="space-y-2">
         <div class="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-50/80 backdrop-blur-sm text-[#3182f6] border border-blue-100 rounded-full text-xs font-bold tracking-tight">
-          사주 풀이 중...
+          AI 데이터 연산 중
         </div>
         <h3 id="loadingText" class="text-base font-bold text-[#191f28] fade-text">오행 데이터 12,480건을 분석하는 중...</h3>
         <p class="text-xs text-[#8b95a1]">나에게 딱 맞는 최적의 공간 배치 시그널을 계산합니다.</p>
@@ -205,7 +231,7 @@
         <div class="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-50/90 backdrop-blur-sm text-[#3182f6] border border-blue-100/80 rounded-full text-xs font-bold">
           사주 분석 12,482건 완료
         </div>
-        <!-- 개운 처방 문구 직접 노출 -->
+        <!-- 개운 처방 문구 노출 -->
         <h2 id="prescriptionMainTitle" class="text-xl sm:text-2xl font-bold tracking-tight text-[#191f28] leading-snug">
           현관 입구나 거실 북쪽에 잔잔한 물결 그림이나 푸른빛 수경 재배 식물을 놓아보세요.
         </h2>
@@ -228,8 +254,8 @@
       <!-- 카드 2: AI 심층 분석 리포트 -->
       <div class="bg-white/80 backdrop-blur-md rounded-3xl p-6 border border-slate-100 shadow-[0_2px_12px_rgba(0,0,0,0.03)] space-y-3">
         <div class="flex items-center justify-between border-b border-slate-100 pb-3">
-          <h4 class="text-sm font-bold text-[#191f28]">분석 리포트</h4>
-          <span class="text-xs text-[#8b95a1]"></span>
+          <h4 class="text-sm font-bold text-[#191f28]">AI 심층 분석 리포트</h4>
+          <span class="text-xs text-[#8b95a1]">방금 업데이트됨</span>
         </div>
         <div id="output" class="markdown-body text-sm"></div>
       </div>
@@ -271,7 +297,7 @@
         <button type="button" id="close3dModalBtn" class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 font-bold hover:bg-slate-200 flex items-center justify-center cursor-pointer text-sm">&times;</button>
       </div>
 
-      <!-- Three.js Canvas 가 들어갈 3D 뷰포트 -->
+      <!-- Three.js Canvas -->
       <div id="threeCanvasContainer" class="w-full h-64 bg-slate-50 rounded-2xl relative overflow-hidden border border-slate-100 flex items-center justify-center">
       </div>
 
@@ -288,6 +314,62 @@
   </div>
 
   <script>
+    /* =========================================================
+       1. PWA 설치 (Add to Home Screen) 크롬 감지 로직
+       ========================================================= */
+    // Manifest 데이터 생성 및 동적 주입
+    const manifestData = {
+      name: "AI 사주 공간 큐레이션",
+      short_name: "사주큐레이션",
+      start_url: ".",
+      display: "standalone",
+      background_color: "#f2f4f6",
+      theme_color: "#3182f6",
+      icons: [{
+        src: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔮</text></svg>",
+        sizes: "192x192 512x512",
+        type: "image/svg+xml"
+      }]
+    };
+    const manifestBlob = new Blob([JSON.stringify(manifestData)], { type: 'application/json' });
+    document.getElementById('manifestLink').setAttribute('href', URL.createObjectURL(manifestBlob));
+
+    // Service Worker 등록 (PWA 요건 충족)
+    if ('serviceWorker' in navigator) {
+      const swCode = `self.addEventListener('fetch', (event) => {});`;
+      const swBlob = new Blob([swCode], { type: 'text/javascript' });
+      navigator.serviceWorker.register(URL.createObjectURL(swBlob)).catch(() => {});
+    }
+
+    // Chrome 설치 프롬프트 이벤트 수집
+    let deferredPrompt = null;
+    const installBanner = document.getElementById('installBanner');
+    const installBtn = document.getElementById('installBtn');
+    const closeInstallBanner = document.getElementById('closeInstallBanner');
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      installBanner.classList.remove('hidden');
+    });
+
+    installBtn.addEventListener('click', async () => {
+      if (!deferredPrompt) return;
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') {
+        installBanner.classList.add('hidden');
+      }
+      deferredPrompt = null;
+    });
+
+    closeInstallBanner.addEventListener('click', () => {
+      installBanner.classList.add('hidden');
+    });
+
+    /* =========================================================
+       2. 메인 사주 큐레이션 UI 및 데이터 처리
+       ========================================================= */
     let currentStep = 1;
     const totalSteps = 4;
     let targetLocation = "거실 북쪽";
@@ -511,7 +593,7 @@
       } catch (err) {
         clearInterval(msgInterval);
         loadingContainer.classList.add('hidden');
-        formContainer.classList.remove('hidden');
+        formContainer.classList.add('hidden');
         buttonContainer.classList.remove('hidden');
         stepIndicator.classList.remove('hidden');
         if (currentStep === 1) bgScrollArea.classList.remove('hidden');
@@ -519,9 +601,9 @@
       }
     }
 
-    // =========================================================
-    // Three.js 3D 공간 연산 및 렌더링 함수
-    // =========================================================
+    /* =========================================================
+       3. Three.js 3D 공간 연산 및 렌더링
+       ========================================================= */
     let scene, camera, renderer, markerMesh, animFrameId;
 
     function init3DRoom(loc) {
@@ -543,32 +625,27 @@
       renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
       container.appendChild(renderer.domElement);
 
-      // 조명 설정
       const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
       scene.add(ambientLight);
       const dirLight = new THREE.DirectionalLight(0xffffff, 0.5);
       dirLight.position.set(5, 10, 7);
       scene.add(dirLight);
 
-      // 바닥 격자 및 공간 윤곽
       const gridHelper = new THREE.GridHelper(6, 6, 0xcbd5e1, 0xe2e8f0);
       scene.add(gridHelper);
 
-      // 방 벽면 가이드 (투명한 외각 박스)
       const wallMat = new THREE.MeshBasicMaterial({ color: 0x94a3b8, wireframe: true, transparent: true, opacity: 0.25 });
       const roomGeo = new THREE.BoxGeometry(6, 3, 6);
       const roomMesh = new THREE.Mesh(roomGeo, wallMat);
       roomMesh.position.set(0, 1.5, 0);
       scene.add(roomMesh);
 
-      // 방 문(현관) 표현
       const doorGeo = new THREE.BoxGeometry(1.2, 2, 0.1);
       const doorMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8 });
       const door = new THREE.Mesh(doorGeo, doorMat);
       door.position.set(-1.5, 1, 3);
       scene.add(door);
 
-      // 분석된 위치에 따른 3D 마커 좌표 계산
       let posX = 0, posZ = 0;
 
       if (loc.includes('북')) { posZ = -2; }
@@ -587,7 +664,6 @@
         posZ = 0;
       }
 
-      // 3D 구형 마커
       const markerGeo = new THREE.SphereGeometry(0.35, 16, 16);
       const markerMat = new THREE.MeshStandardMaterial({
         color: 0x3182f6,
@@ -598,7 +674,6 @@
       markerMesh.position.set(posX, 0.5, posZ);
       scene.add(markerMesh);
 
-      // 바닥 포인트 링
       const ringGeo = new THREE.RingGeometry(0.4, 0.6, 32);
       const ringMat = new THREE.MeshBasicMaterial({ color: 0x3182f6, side: THREE.DoubleSide, transparent: true, opacity: 0.5 });
       const ringMesh = new THREE.Mesh(ringGeo, ringMat);
@@ -606,7 +681,6 @@
       ringMesh.position.set(posX, 0.05, posZ);
       scene.add(ringMesh);
 
-      // 애니메이션 루프
       let clock = 0;
       function animate() {
         animFrameId = requestAnimationFrame(animate);
